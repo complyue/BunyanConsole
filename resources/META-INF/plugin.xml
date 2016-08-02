@@ -1,0 +1,29 @@
+<idea-plugin version="2">
+  <id>BunyanConsole</id>
+  <name>Pretty Print JSON log through Bunyan</name>
+  <version>1.0</version>
+  <vendor email="compl.yue@icloud.com" url="https://github.com/complyue/BunyanConsole">BunyanConsole GitHub Repository</vendor>
+
+  <description><![CDATA[
+      Plugin for IntelliJ IDEs to pretty print JSON log through Bunyan.<br>
+      <em>You'll need globally installed bunyan command line tool (npm install -g bunyan) for this plugin to work.</em>
+    ]]></description>
+
+  <change-notes><![CDATA[
+      Initial version.<br>
+      <em></em>
+    ]]>
+  </change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="141.0"/>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+  </extensions>
+
+  <actions>
+    <!-- Add your actions here -->
+  </actions>
+
+</idea-plugin>
