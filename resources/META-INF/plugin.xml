@@ -1,7 +1,7 @@
 <idea-plugin version="2">
     <id>BunyanConsole</id>
     <name>Bunyan Pretty Print</name>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <vendor email="compl.yue@icloud.com" url="https://github.com/complyue/BunyanConsole">
         Compl Yue
     </vendor>

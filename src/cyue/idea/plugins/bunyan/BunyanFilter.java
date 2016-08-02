@@ -8,17 +8,32 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
 
 public class BunyanFilter implements InputFilter {
 
+  public static String findBunyan() {
+    for (String tryPath : new String[]{"/usr/local/bin/bunyan"}) {
+      try {
+        if (Files.isExecutable(Paths.get(tryPath))) {
+          return tryPath;
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    return "bunyan";
+  }
+
   protected final static ThreadLocal<PipeProcessing> pp = new ThreadLocal<PipeProcessing>() {
     @Override
     protected PipeProcessing initialValue() {
       return new PipeProcessing(new String[]{
-        "bunyan"//, "--color"
+          findBunyan() //, "--color"
       }, "", "[bunyan-error] ", 30);
     }
   };
@@ -26,8 +41,9 @@ public class BunyanFilter implements InputFilter {
   @Nullable
   @Override
   public List<Pair<String, ConsoleViewContentType>> applyFilter(String s, ConsoleViewContentType consoleViewContentType) {
+
     if (ConsoleViewContentType.NORMAL_OUTPUT == consoleViewContentType
-      || ConsoleViewContentType.ERROR_OUTPUT == consoleViewContentType) {
+        || ConsoleViewContentType.ERROR_OUTPUT == consoleViewContentType) {
 
       try {
         return pp.get().convert(s, consoleViewContentType);
@@ -38,8 +54,8 @@ public class BunyanFilter implements InputFilter {
         e.printStackTrace(pw);
         pw.flush();
         return Arrays.asList(
-          new Pair<>(s, consoleViewContentType),
-          new Pair<>(st.toString(), consoleViewContentType)
+            new Pair<>(s, consoleViewContentType),
+            new Pair<>(st.toString(), consoleViewContentType)
         );
       }
 

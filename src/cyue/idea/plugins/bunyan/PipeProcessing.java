@@ -3,7 +3,13 @@ package cyue.idea.plugins.bunyan;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.util.Pair;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +31,7 @@ public class PipeProcessing {
   protected StreamDecoder in, err;
 
   public List<Pair<String, ConsoleViewContentType>> convert(
-    String seg, ConsoleViewContentType consoleViewContentType
+      String seg, ConsoleViewContentType consoleViewContentType
   ) throws IOException, InterruptedException {
 
     if (null != this.p && !this.p.isAlive()) {
@@ -33,7 +39,14 @@ public class PipeProcessing {
       this.p = null;
     }
     if (null == this.p) {
-      this.p = Runtime.getRuntime().exec(this.cmd);
+      String pathEnv = System.getenv("PATH");
+      Path cmdDir = Paths.get(this.cmd[0]).getParent();
+      if (Files.isDirectory(cmdDir)) {
+        pathEnv = cmdDir.toAbsolutePath() + File.pathSeparator + pathEnv;
+      }
+      this.p = Runtime.getRuntime().exec(this.cmd, new String[]{
+          "PATH=" + pathEnv
+      });
       this.out = new OutputStreamWriter(p.getOutputStream());
       this.in = new StreamDecoder(p.getInputStream(), linePrefix);
       this.err = new StreamDecoder(p.getErrorStream(), errLinePrefix);
@@ -75,8 +88,8 @@ public class PipeProcessing {
   }
 
   protected static void pump(
-    StreamDecoder in, List<Pair<String, ConsoleViewContentType>> out,
-    ConsoleViewContentType consoleViewContentType
+      StreamDecoder in, List<Pair<String, ConsoleViewContentType>> out,
+      ConsoleViewContentType consoleViewContentType
   ) throws IOException, InterruptedException {
     for (String seg = in.readOut(); seg != null; seg = in.readOut()) {
       out.add(new Pair<>(seg, consoleViewContentType));
