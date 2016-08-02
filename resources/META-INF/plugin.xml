@@ -2,7 +2,9 @@
   <id>BunyanConsole</id>
   <name>Pretty Print JSON log through Bunyan</name>
   <version>1.0</version>
-  <vendor email="compl.yue@icloud.com" url="https://github.com/complyue/BunyanConsole">BunyanConsole GitHub Repository</vendor>
+  <vendor email="compl.yue@icloud.com" url="https://github.com/complyue/BunyanConsole">
+    BunyanConsole GitHub Repository
+  </vendor>
 
   <description><![CDATA[
       Plugin for IntelliJ IDEs to pretty print JSON log through Bunyan.<br>
@@ -19,11 +21,10 @@
   <idea-version since-build="141.0"/>
 
   <extensions defaultExtensionNs="com.intellij">
-    <!-- Add your extensions here -->
+    <consoleInputFilterProvider implementation="cyue.idea.plugins.bunyan.BunyanFilterProvider"/>
   </extensions>
 
   <actions>
-    <!-- Add your actions here -->
   </actions>
 
 </idea-plugin>
