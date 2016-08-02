@@ -9,105 +9,119 @@ import java.nio.charset.CharsetDecoder;
 
 public class StreamDecoder {
 
-  protected final String linePrefix;
-  protected InputStream in;
-  protected CharsetDecoder decoder;
-  protected byte[] bytes;
-  protected int bp;
-  protected CharBuffer chars;
-  protected StringBuilder str;
+    protected final String linePrefix;
+    protected InputStream in;
+    protected CharsetDecoder decoder;
+    protected byte[] bytes;
+    protected int bp;
+    protected CharBuffer chars;
+    protected StringBuilder str;
 
-  public StreamDecoder(InputStream in, String linePrefix) {
-    this.linePrefix = linePrefix;
-    this.in = in;
-    this.decoder = Charset.defaultCharset().newDecoder();
-    this.bytes = new byte[2000];
-    this.bp = 0;
-    this.chars = CharBuffer.allocate(2000); // chars should be large enough for all possible bytes
-    this.str = new StringBuilder(5000);
-  }
+    public StreamDecoder(InputStream in, String linePrefix) {
+        this.linePrefix = linePrefix;
+        this.in = in;
+        this.decoder = Charset.defaultCharset().newDecoder();
+        this.bytes = new byte[2000];
+        this.bp = 0;
+        this.chars = CharBuffer.allocate(2000); // chars should be large enough for all possible bytes
+        this.str = new StringBuilder(5000);
+    }
 
-  public String readOut() throws IOException, InterruptedException {
-    // TODO implement linePrefix semantics
+    public String readOut() throws IOException, InterruptedException {
+        // TODO implement linePrefix semantics
 
-    str.setLength(0); // clear str buffer
+        str.setLength(0); // clear str buffer
 
-    while (true) { // loop regarding buffer capacity
+        while (true) { // loop regarding buffer capacity
 
-      while (in.available() > 0) { // loop regarding input data and buffer capacity
-        int b = in.read();
-        if (b < 0) break;
-        bytes[bp++] = (byte) b;
-        if (bp >= bytes.length) {
-          // buf full
-          break;
+            while (in.available() > 0) { // loop regarding input data and buffer capacity
+                int b = in.read();
+                if (b < 0) break;
+                bytes[bp++] = (byte) b;
+                if (bp >= bytes.length) {
+                    // buf full
+                    break;
+                }
+            }
+            if (bp <= 0) {
+                // non read
+                break;
+            }
+
+            // decode bytes to chars
+            ByteBuffer bb = ByteBuffer.wrap(bytes, 0, bp);
+            chars.clear();
+            decoder.decode(bb, chars, false);
+            chars.flip();
+            str.append(chars.toString());
+            // need to keep remaining bytes as incomplete byte sequence may occur
+            if (bb.hasRemaining()) {
+                bb.compact();
+                bp = bb.limit();
+            } else {
+                bp = 0;
+            }
+
+            // wait io cycle
+            if (in.available() <= 0) {
+                Thread.sleep(1L);
+            }
+
         }
-      }
-      if (bp <= 0) {
-        // non read
-        break;
-      }
 
-      // decode bytes to chars
-      ByteBuffer bb = ByteBuffer.wrap(bytes, 0, bp);
-      chars.clear();
-      decoder.decode(bb, chars, false);
-      chars.flip();
-      str.append(chars.toString());
-      // need to keep remaining bytes as incomplete byte sequence may occur
-      if (bb.hasRemaining()) {
-        bb.compact();
-        bp = bb.limit();
-      } else {
-        bp = 0;
-      }
+        if (str.length() <= 0) {
+            // nothing read
+            return null;
+        }
 
-      // wait io cycle
-      if (in.available() <= 0) {
-        Thread.sleep(1L);
-      }
-
+        return str.toString();
     }
 
-    if (str.length() <= 0) {
-      // nothing read
-      return null;
+    public static void main(String... args) throws Exception {
+        String[] cmd = new String[]{"bunyan"};
+        if (args.length > 0) {
+            cmd = args;
+        }
+
+        final int maxRetry = 30;
+
+        Process p = Runtime.getRuntime().exec(cmd);
+        Writer sink = new OutputStreamWriter(p.getOutputStream());
+        StreamDecoder out = new StreamDecoder(p.getInputStream(), "");
+        StreamDecoder err = new StreamDecoder(p.getErrorStream(), "");
+
+        BufferedReader sin = new BufferedReader(new InputStreamReader(System.in));
+        for (String line = sin.readLine(); line != null; line = sin.readLine()) {
+
+            sink.write(line);
+            sink.write("\n");
+            sink.flush();
+
+            int retryCnt = 0;
+            boolean got = false;
+            while (true) {
+                Thread.sleep(retryCnt);
+
+                for (String seg = err.readOut(); seg != null; seg = err.readOut()) {
+                    System.err.print("\n*-err-* <<<");
+                    System.err.print(seg);
+                    System.err.println(">>>*-err-*\n");
+                    got = true;
+                }
+                for (String seg = out.readOut(); seg != null; seg = out.readOut()) {
+                    System.err.print("\n*-out-* <<<");
+                    System.err.print(seg);
+                    System.err.println(">>>*-out-*\n");
+                    got = true;
+                }
+
+                if (got) break;
+                if (++retryCnt >= maxRetry) {
+                    throw new Exception("Failed process <<<" + line + ">>>");
+                }
+            }
+
+        }
     }
-
-    return str.toString();
-  }
-
-  public static void main(String... args) throws Exception {
-    String[] cmd = new String[]{"bunyan"};
-    if (args.length > 0) {
-      cmd = args;
-    }
-
-    Process p = Runtime.getRuntime().exec(cmd);
-    Writer sink = new OutputStreamWriter(p.getOutputStream());
-    StreamDecoder out = new StreamDecoder(p.getInputStream(), "");
-    StreamDecoder err = new StreamDecoder(p.getErrorStream(), "");
-
-    BufferedReader sin = new BufferedReader(new InputStreamReader(System.in));
-    for (String line = sin.readLine(); line != null; line = sin.readLine()) {
-
-      sink.write(line);
-      sink.write("\n");
-      sink.flush();
-      Thread.sleep(1L);
-
-      for (String seg = err.readOut(); seg != null; seg = err.readOut()) {
-        System.err.print("\n*-err-* <<<");
-        System.err.print(seg);
-        System.err.println(">>>*-err-*\n");
-      }
-      for (String seg = out.readOut(); seg != null; seg = out.readOut()) {
-        System.err.print("\n*-out-* <<<");
-        System.err.print(seg);
-        System.err.println(">>>*-out-*\n");
-      }
-
-    }
-  }
 
 }
