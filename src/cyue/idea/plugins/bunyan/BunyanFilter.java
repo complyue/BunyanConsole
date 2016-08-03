@@ -11,6 +11,7 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -38,31 +39,43 @@ public class BunyanFilter implements InputFilter {
     }
   };
 
+  protected LineCut cutOut = new LineCut(), cutErr = new LineCut();
+
   @Nullable
   @Override
   public List<Pair<String, ConsoleViewContentType>> applyFilter(String s, ConsoleViewContentType consoleViewContentType) {
 
-    if (ConsoleViewContentType.NORMAL_OUTPUT == consoleViewContentType
-        || ConsoleViewContentType.ERROR_OUTPUT == consoleViewContentType) {
+    LineCut lc;
 
-      try {
-        return pp.get().convert(s, consoleViewContentType);
-      } catch (Exception e) {
-        // reflect error info
-        StringWriter st = new StringWriter();
-        PrintWriter pw = new PrintWriter(st);
-        e.printStackTrace(pw);
-        pw.flush();
-        return Arrays.asList(
-            new Pair<>(s, consoleViewContentType),
-            new Pair<>(st.toString(), consoleViewContentType)
-        );
+    if (ConsoleViewContentType.NORMAL_OUTPUT == consoleViewContentType) {
+      lc = cutOut;
+    } else if (ConsoleViewContentType.ERROR_OUTPUT == consoleViewContentType) {
+      lc = cutErr;
+    } else {
+      // others, no treatment
+      return null;
+    }
+
+    try {
+      String l = lc.feed(s);
+      if (l == null) {
+        // no complete line present, cork output
+        return Collections.emptyList();
       }
+      return pp.get().convert(l, consoleViewContentType);
+    } catch (Exception e) {
+      // reflect error info
+      StringWriter st = new StringWriter();
+      PrintWriter pw = new PrintWriter(st);
+      e.printStackTrace(pw);
+      pw.flush();
+      return Arrays.asList(
+          new Pair<>(s, consoleViewContentType),
+          new Pair<>(st.toString(), consoleViewContentType)
+      );
 
     }
 
-    // others, no treatment
-    return null;
   }
 
 }
