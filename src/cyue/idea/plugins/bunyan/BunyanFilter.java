@@ -6,9 +6,9 @@ import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.util.Pair;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,7 +17,31 @@ import java.util.List;
 
 public class BunyanFilter implements InputFilter {
 
+  /**
+   * Kudos: http://stackoverflow.com/a/38073998/6394508
+   */
+  public static Path lookForProgramInPath(String desiredProgram) {
+    ProcessBuilder pb = new ProcessBuilder(File.pathSeparatorChar == ';' ? "where" : "which", desiredProgram);
+    Path foundProgram = null;
+    try {
+      Process proc = pb.start();
+      int errCode = proc.waitFor();
+      if (errCode == 0) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()))) {
+          foundProgram = Paths.get(reader.readLine());
+        }
+      }
+    } catch (IOException | InterruptedException ex) {
+    }
+    return foundProgram;
+  }
+
+
   public static String findBunyan() {
+    Path bunyanFromPath = lookForProgramInPath("bunyan");
+    if (bunyanFromPath != null && Files.isExecutable(bunyanFromPath)) {
+      return bunyanFromPath.toAbsolutePath().toString();
+    }
     for (String tryPath : new String[]{"/usr/local/bin/bunyan"}) {
       try {
         if (Files.isExecutable(Paths.get(tryPath))) {
