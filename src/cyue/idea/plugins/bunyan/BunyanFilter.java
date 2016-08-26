@@ -36,21 +36,42 @@ public class BunyanFilter implements InputFilter {
     return foundProgram;
   }
 
+  public static final String[] PREFERED_BUNYAN_LOCS = new String[]{
+      "/usr/local/bin/bunyan"
+  };
+
+  private static Path bunyanPath = null;
 
   public static String findBunyan() {
-    Path bunyanFromPath = lookForProgramInPath("bunyan");
-    if (bunyanFromPath != null && Files.isExecutable(bunyanFromPath)) {
-      return bunyanFromPath.toAbsolutePath().toString();
+    // resolve from system PATH if no valid location cached
+    if (bunyanPath == null) {
+      Path p = lookForProgramInPath("bunyan");
+      if (p != null) {
+        p = p.toAbsolutePath();
+        if (Files.isExecutable(p)) {
+          bunyanPath = p;
+          return p.toString();
+        }
+      }
     }
-    for (String tryPath : new String[]{"/usr/local/bin/bunyan"}) {
+    // it may disappear over time, so check cached path every time
+    if (bunyanPath != null && Files.isExecutable(bunyanPath)) {
+      return bunyanPath.toString();
+    }
+    // try some predefined locations, if still not resolved
+    // this works around OSX for its enhanced security resetting PATH of Application executable
+    for (String tryPath : PREFERED_BUNYAN_LOCS) {
       try {
-        if (Files.isExecutable(Paths.get(tryPath))) {
+        Path p = Paths.get(tryPath);
+        if (Files.isExecutable(p)) {
+          bunyanPath = p;
           return tryPath;
         }
       } catch (Exception e) {
         e.printStackTrace();
       }
     }
+    // fall back to try some luck for possible magic that may exists
     return "bunyan";
   }
 
