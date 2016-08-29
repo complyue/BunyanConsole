@@ -32,6 +32,7 @@ public class BunyanFilter implements InputFilter {
         }
       }
     } catch (IOException | InterruptedException ex) {
+      ex.printStackTrace();
     }
     return foundProgram;
   }

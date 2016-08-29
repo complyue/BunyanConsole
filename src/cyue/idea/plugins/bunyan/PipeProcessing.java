@@ -39,14 +39,13 @@ public class PipeProcessing {
       this.p = null;
     }
     if (null == this.p) {
-      String pathEnv = System.getenv("PATH");
+      ArrayList<String> envs = new ArrayList<>(3);
       Path cmdDir = Paths.get(this.cmd[0]).getParent();
-      if (Files.isDirectory(cmdDir)) {
-        pathEnv = cmdDir.toAbsolutePath() + File.pathSeparator + pathEnv;
+      if (null != cmdDir && Files.isDirectory(cmdDir)) {
+        String pathEnv = cmdDir.toAbsolutePath() + File.pathSeparator + System.getenv("PATH");
+        envs.add("PATH=" + pathEnv);
       }
-      this.p = Runtime.getRuntime().exec(this.cmd, new String[]{
-          "PATH=" + pathEnv
-      });
+      this.p = Runtime.getRuntime().exec(this.cmd, envs.toArray(new String[envs.size()]));
       this.out = new OutputStreamWriter(p.getOutputStream());
       this.in = new StreamDecoder(p.getInputStream(), linePrefix);
       this.err = new StreamDecoder(p.getErrorStream(), errLinePrefix);
